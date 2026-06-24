@@ -442,6 +442,16 @@ export interface TitleLayer extends TextLayer, KenBurns {
   position?: Position;
 }
 
+/**
+ * A single timed word for karaoke-style subtitle highlighting.
+ * Times are in seconds, relative to the subtitle layer's start.
+ */
+export interface SubtitleWord {
+  word: string;
+  start: number;
+  end: number;
+}
+
 export interface SubtitleLayer extends TextLayer {
   /**
    * Layer type.
@@ -455,6 +465,48 @@ export interface SubtitleLayer extends TextLayer {
 
   delay: number;
   speed: number;
+
+  /**
+   * Per-word timings. When set, the full caption is shown and the word being
+   * spoken at the current time is highlighted (karaoke style), instead of the
+   * single-line fade-in used for plain `text`.
+   */
+  words?: SubtitleWord[];
+
+  /**
+   * Fill color for the currently-spoken word (used with `words`).
+   * @default "#ffe000"
+   */
+  activeColor?: string;
+
+  /**
+   * Absolute font size in px.
+   * @default min(width, height) / 20
+   */
+  fontSize?: number;
+
+  /**
+   * Outline color for legibility over busy video.
+   */
+  strokeColor?: string;
+
+  /**
+   * Outline width in px.
+   * @default 0
+   */
+  strokeWidth?: number;
+
+  /**
+   * Vertical placement of the caption.
+   * @default "bottom"
+   */
+  position?: "top" | "center" | "bottom";
+
+  /**
+   * Maximum text width as a fraction of canvas width (0-1).
+   * @default 0.9
+   */
+  maxWidth?: number;
 }
 
 /**
