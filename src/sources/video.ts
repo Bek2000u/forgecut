@@ -139,20 +139,32 @@ export default defineFrameSource<VideoLayer>("video", async (options) => {
     cancelSignal: controller.signal,
   });
 
-  // Ignore errors if the process is aborted
+  // Capture a genuine ffmpeg failure so it can be surfaced from readNextFrame.
+  // Re-throwing from this detached `.catch` produced an unhandled rejection that
+  // never failed the render (the shortfall was then masked as "missing frames").
+  let processError: ExecaError | undefined;
   ps.catch((err: ExecaError) => {
-    if (!err.isCanceled) throw err;
-    if (verbose) console.log("ffmpeg process aborted", path);
+    if (err.isCanceled) {
+      if (verbose) console.log("ffmpeg process aborted", path);
+      return;
+    }
+    processError = err;
   });
 
   // Convert process to iterator to fetch frame data
   const iterator = ps.iterable();
 
+  // Count frames so an early end-of-stream is visible under `verbose`.
+  let framesRead = 0;
+
   async function readNextFrame(progress: number, canvas: fabric.StaticCanvas, time: number) {
     const { value: rgba, done } = await iterator.next();
 
     if (done) {
-      if (verbose) console.log(path, "ffmpeg video stream ended");
+      // A failed ffmpeg ends the iterable; surface it instead of silently
+      // returning (which would be masked downstream as a duplicated last frame).
+      if (processError) throw processError;
+      if (verbose) console.log(path, `ffmpeg video stream ended after ${framesRead} frame(s)`);
       return;
     }
 
@@ -161,11 +173,16 @@ export default defineFrameSource<VideoLayer>("video", async (options) => {
       return;
     }
 
+    // The raw video stream yields binary frames; execa types the iterable value
+    // as `string | Uint8Array`, so narrow to a Buffer for the fabric image.
+    const frame = Buffer.from(rgba as Uint8Array);
+    framesRead += 1;
+
     if (logTimes) console.time("rgbaToFabricImage");
     const img = await rgbaToFabricImage({
       width: targetWidth,
       height: targetHeight,
-      rgba: Buffer.from(rgba),
+      rgba: frame,
     });
     if (logTimes) console.timeEnd("rgbaToFabricImage");
 
@@ -213,7 +230,10 @@ export default defineFrameSource<VideoLayer>("video", async (options) => {
 
   const close = () => {
     if (verbose) console.log("Close", path);
-    if (!ps.exitCode) controller.abort();
+    // Only abort if the process is still running. `exitCode` is null while
+    // running and 0 on clean exit, so the old `!ps.exitCode` aborted an
+    // already-finished process too.
+    if (ps.exitCode == null && !ps.killed) controller.abort();
   };
 
   return {

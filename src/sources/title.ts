@@ -1,5 +1,5 @@
 import { Textbox } from "fabric/node";
-import { defineFrameSource } from "../api//index.js";
+import { defineFrameSource } from "../api/index.js";
 import type { TitleLayer } from "../types.js";
 import {
   defaultFontFamily,

@@ -4,7 +4,7 @@ declare module "gl-transitions" {
     author: string;
     license: string;
     glsl: string;
-    defaultParams: { [key: string]: mixed };
+    defaultParams: { [key: string]: unknown };
     paramsTypes: { [key: string]: string };
     createdAt: string;
     updatedAt: string;

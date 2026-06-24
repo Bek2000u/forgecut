@@ -2,13 +2,11 @@ import assert from "assert";
 import GL from "gl";
 import createBuffer from "gl-buffer";
 import createTexture from "gl-texture2d";
-import glTransition from "gl-transition";
+import createTransition from "gl-transition";
 import glTransitions, { type GlTransition } from "gl-transitions";
 import ndarray from "ndarray";
 import type { EasingFunction } from "./easings.js";
 import * as easings from "./easings.js";
-
-const { default: createTransition } = glTransition;
 
 const TransitionAliases: Record<string, Partial<TransitionOptions>> = {
   "directional-left": { name: "directional", easing: "easeOutExpo", params: { direction: [1, 0] } },
@@ -139,6 +137,11 @@ export class Transition {
   easingFunction: EasingFunction;
   source?: GlTransition;
 
+  // A headless-gl context is expensive and capped in number, so each transition
+  // lazily creates one context and reuses it for every frame (see `create`).
+  private gl?: ReturnType<typeof GL>;
+  private runner?: (options: RunTransitionOptions) => Buffer;
+
   constructor(options?: TransitionOptions | null, isLastClip: boolean = false) {
     if (!options || isLastClip) options = { duration: 0 };
 
@@ -169,6 +172,11 @@ export class Transition {
   }
 
   create({ width, height, channels }: { width: number; height: number; channels: number }) {
+    // Reuse the context/runner across all frames of this transition instead of
+    // allocating a new headless-gl context per frame (which leaks and exhausts
+    // the context limit on longer videos).
+    if (this.runner) return this.runner;
+
     const gl = GL(width, height);
     const resizeMode = "stretch";
 
@@ -178,12 +186,14 @@ export class Transition {
       );
     }
 
+    this.gl = gl;
+
     function convertFrame(buf: Buffer) {
       // @see https://github.com/stackgl/gl-texture2d/issues/16
       return ndarray(buf, [width, height, channels], [channels, width * channels, 1]);
     }
 
-    return ({ fromFrame, toFrame, progress }: RunTransitionOptions) => {
+    this.runner = ({ fromFrame, toFrame, progress }: RunTransitionOptions) => {
       if (!this.source) {
         // No transition found, just switch frames half way through the transition.
         return this.easingFunction(progress) > 0.5 ? toFrame : fromFrame;
@@ -238,5 +248,16 @@ export class Transition {
         if (transition) transition.dispose();
       }
     };
+
+    return this.runner;
+  }
+
+  /** Destroy the headless-gl context held by this transition. Idempotent. */
+  close() {
+    if (this.gl) {
+      (this.gl.getExtension("STACKGL_destroy_context") as { destroy(): void } | null)?.destroy();
+      this.gl = undefined;
+      this.runner = undefined;
+    }
   }
 }

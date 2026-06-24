@@ -51,10 +51,10 @@ const cli = meow(
   {
     importMeta: import.meta,
     flags: {
-      verbose: { type: "boolean", alias: "v" },
+      verbose: { type: "boolean", shortFlag: "v" },
       keepSourceAudio: { type: "boolean" },
       allowRemoteRequests: { type: "boolean" },
-      fast: { type: "boolean", alias: "f" },
+      fast: { type: "boolean", shortFlag: "f" },
       transitionName: { type: "string" },
       transitionDuration: { type: "number" },
       clipDuration: { type: "number" },

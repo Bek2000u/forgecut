@@ -1,4 +1,4 @@
-FROM node:lts-bookworm AS build
+FROM node:24-bookworm AS build
 
 # Install dependencies for building canvas/gl
 RUN apt-get update -y
@@ -51,7 +51,7 @@ RUN apt-get --purge autoremove -y \
 RUN rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 
 # Final stage for app image
-FROM node:lts-bookworm
+FROM node:24-bookworm
 
 # Install runtime dependencies
 RUN apt-get update -y \

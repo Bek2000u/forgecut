@@ -112,7 +112,7 @@ export interface KenBurns {
    * Zoom direction for Ken Burns effect.
    * Use `null` to disable.
    */
-  zoomDirection?: "in" | "out" | "left" | `right` | null;
+  zoomDirection?: "in" | "out" | "left" | "right" | null;
 
   /**
    * Zoom amount for Ken Burns effect.

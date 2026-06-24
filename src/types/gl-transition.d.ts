@@ -1,7 +1,7 @@
 declare module "gl-transition" {
   type TransitionObjectLike = {
     glsl: string;
-    defaultParams: { [key: string]: mixed };
+    defaultParams: { [key: string]: unknown };
     paramsTypes: { [key: string]: string };
   };
 
@@ -17,22 +17,24 @@ declare module "gl-transition" {
   declare function createTransition(
     gl: WebGLRenderingContext,
     transition: TransitionObjectLike,
-    options: Options = {},
+    options?: Options,
   ): {
     // renders one frame of the transition (up to you to run the animation loop the way you want)
     draw: (
       progress: number,
       from: GLTextureLike,
       to: GLTextureLike,
-      width: number = gl.drawingBufferWidth,
-      height: number = gl.drawingBufferHeight,
-      params: { [key: string]: number | number[] | boolean | GLTextureLike } = {},
+      width?: number,
+      height?: number,
+      params?: { [key: string]: number | number[] | boolean | GLTextureLike },
     ) => void;
     // dispose and destroy all objects created by the function call.
     dispose: () => void;
   };
 
-  export = { default: createTransition };
+  // gl-transition v2 exposes the factory as a direct default export
+  // (v1 wrapped it as `{ default: createTransition }`).
+  export default createTransition;
 }
 
 /*

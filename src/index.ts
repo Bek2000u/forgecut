@@ -169,7 +169,11 @@ async function Editly(input: ConfigurationOptions): Promise<void> {
     framerateStr = String(fps);
   } else if (firstVideoFramerateStr) {
     fps = parseFps(firstVideoFramerateStr) ?? 25;
-    framerateStr = firstVideoFramerateStr;
+    // Drive the ffmpeg `fps` filter from the same numeric rate used to count
+    // frames. Passing the raw fraction (e.g. 30000/1001) here while counting
+    // with the rounded float made ffmpeg under/over-produce frames at clip
+    // boundaries, which then surfaced as "missing frames".
+    framerateStr = String(fps);
   } else {
     fps = 25;
     framerateStr = String(fps);
@@ -358,7 +362,9 @@ async function Editly(input: ConfigurationOptions): Promise<void> {
             break;
           }
 
-          // Cleanup completed frameSource1, swap and load next frameSource2
+          // Cleanup completed frameSource1 and its transition (the gl context),
+          // then swap and load next frameSource2
+          currentTransition.close();
           await frameSource1.close();
           frameSource1 = frameSource2;
           frameSource2 = await getTransitionToSource();
@@ -434,12 +440,10 @@ async function Editly(input: ConfigurationOptions): Promise<void> {
           // console.log(outFrameData.length / 1e6, 'MB');
         }
 
-        const nullOutput = false;
-
         if (logTimes) console.time("outProcess.write");
 
         // If we don't wait, then we get EINVAL when dealing with high resolution files (big writes)
-        if (!nullOutput) await new Promise((r) => outProcess?.stdin?.write(outFrameData, r));
+        await new Promise((r) => outProcess?.stdin?.write(outFrameData, r));
 
         if (logTimes) console.timeEnd("outProcess.write");
 
@@ -458,6 +462,9 @@ async function Editly(input: ConfigurationOptions): Promise<void> {
       if (verbose) console.log("Cleanup");
       if (frameSource1) await frameSource1.close();
       if (frameSource2) await frameSource2.close();
+      // Backstop: free any transition gl contexts not released during the loop
+      // (e.g. the last clip's transition, or on early error). close() is idempotent.
+      for (const clip of clips) clip.transition?.close();
     }
 
     try {
@@ -497,9 +504,7 @@ export async function renderSingleFrame(input: RenderSingleFrameConfig): Promise
     defaults,
   } = config;
 
-  configureFf(config);
-
-  console.log({ clipsIn });
+  await configureFf(config);
 
   const { clips } = await parseConfig({
     clips: clipsIn,

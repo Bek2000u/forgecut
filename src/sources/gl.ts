@@ -52,17 +52,24 @@ export default defineFrameSource<GlLayer>("gl", async ({ width, height, channels
     gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, upsideDownArray);
     const outArray = Buffer.allocUnsafe(width * height * channels);
 
-    // Comes out upside down, flip it
-    for (let i = 0; i < outArray.length; i += 4) {
-      outArray[i + 0] = upsideDownArray[outArray.length - i + 0];
-      outArray[i + 1] = upsideDownArray[outArray.length - i + 1];
-      outArray[i + 2] = upsideDownArray[outArray.length - i + 2];
-      outArray[i + 3] = upsideDownArray[outArray.length - i + 3];
+    // GL renders bottom-to-top, so flip vertically by copying whole rows in
+    // reverse order. Column (and RGBA) order within each row is preserved —
+    // the previous per-pixel reversal also mirrored horizontally and read out
+    // of bounds for the first pixel.
+    const rowBytes = width * channels;
+    for (let y = 0; y < height; y += 1) {
+      const srcStart = (height - 1 - y) * rowBytes;
+      upsideDownArray.copy(outArray, y * rowBytes, srcStart, srcStart + rowBytes);
     }
     return outArray;
   }
 
+  function close() {
+    (gl.getExtension("STACKGL_destroy_context") as { destroy(): void } | null)?.destroy();
+  }
+
   return {
     readNextFrame,
+    close,
   };
 });
