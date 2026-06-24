@@ -46,7 +46,7 @@ const sources = [
 
 export async function createLayerSource<T extends BaseLayer>(options: CreateFrameSourceOptions<T>) {
   const layer = options.params;
-  const source = sources.find(({ type }) => type == layer.type) as
+  const source = sources.find(({ type }) => type === layer.type) as
     | FrameSourceFactory<T>
     | undefined;
   assert(source, `Invalid type ${layer.type}`);
