@@ -47,6 +47,7 @@ async function Editly(input: ConfigurationOptions): Promise<void> {
     keepSourceAudio,
     allowRemoteRequests,
     audioNorm,
+    audioDucking,
     outputVolume,
     customOutputArgs,
     videoCodec,
@@ -88,6 +89,7 @@ async function Editly(input: ConfigurationOptions): Promise<void> {
         clipsAudioVolume,
         clips,
         audioNorm,
+        audioDucking,
         outputVolume,
       })
     : undefined;

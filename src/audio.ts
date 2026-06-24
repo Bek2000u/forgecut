@@ -2,9 +2,11 @@ import { flatMap } from "lodash-es";
 import pMap from "p-map";
 import { basename, join, resolve } from "path";
 import type { Configuration } from "./configuration.js";
+import { buildAudioMixFilter } from "./core/audio-mix.js";
 import { ffmpeg, getCutFromArgs, readFileStreams } from "./ffmpeg.js";
 import type { TransitionOptions } from "./transition.js";
 import type {
+  AudioDuckingOptions,
   AudioLayer,
   AudioNormalizationOptions,
   AudioTrack,
@@ -19,7 +21,7 @@ export type AudioOptions = {
 
 export type EditAudioOptions = Pick<
   Configuration,
-  "keepSourceAudio" | "clips" | "clipsAudioVolume" | "audioNorm" | "outputVolume"
+  "keepSourceAudio" | "clips" | "clipsAudioVolume" | "audioNorm" | "outputVolume" | "audioDucking"
 > & {
   arbitraryAudio: AudioTrack[];
 };
@@ -228,32 +230,14 @@ export default ({ verbose, tmpDir }: AudioOptions) => {
     streams,
     audioNorm,
     outputVolume,
+    ducking,
   }: {
     streams: (AudioTrack & { loop?: number })[];
     audioNorm?: AudioNormalizationOptions;
     outputVolume?: number | string;
+    ducking?: AudioDuckingOptions;
   }) {
-    let maxGain = 30;
-    let gaussSize = 5;
-    if (audioNorm) {
-      if (audioNorm.gaussSize != null) gaussSize = audioNorm.gaussSize;
-      if (audioNorm.maxGain != null) maxGain = audioNorm.maxGain;
-    }
-    const enableAudioNorm = audioNorm && audioNorm.enable;
-
-    // https://stackoverflow.com/questions/35509147/ffmpeg-amix-filter-volume-issue-with-inputs-of-different-duration
-    let filterComplex = streams
-      .map(({ start, cutFrom, cutTo }, i) => {
-        const cutToArg = cutTo != null ? `:end=${cutTo}` : "";
-        const apadArg = i > 0 ? ",apad" : ""; // Don't pad the first track (audio from video clips with correct duration)
-
-        return `[${i}:a]atrim=start=${cutFrom || 0}${cutToArg},adelay=delays=${Math.floor((start || 0) * 1000)}:all=1${apadArg}[a${i}]`;
-      })
-      .join(";");
-
-    const volumeArg = outputVolume != null ? `,volume=${outputVolume}` : "";
-    const audioNormArg = enableAudioNorm ? `,dynaudnorm=g=${gaussSize}:maxgain=${maxGain}` : "";
-    filterComplex += `;${streams.map((_, i) => `[a${i}]`).join("")}amix=inputs=${streams.length}:duration=first:dropout_transition=0:weights=${streams.map((s) => (s.mixVolume != null ? s.mixVolume : 1)).join(" ")}${audioNormArg}${volumeArg}`;
+    const filterComplex = buildAudioMixFilter({ streams, audioNorm, outputVolume, ducking });
 
     const mixedAudioPath = join(tmpDir, "audio-mixed.flac");
 
@@ -281,6 +265,7 @@ export default ({ verbose, tmpDir }: AudioOptions) => {
     clipsAudioVolume,
     audioNorm,
     outputVolume,
+    audioDucking,
   }: EditAudioOptions) {
     // We need clips to process audio, because we need to know duration
     if (clips.length === 0) return undefined;
@@ -311,7 +296,12 @@ export default ({ verbose, tmpDir }: AudioOptions) => {
 
     if (streams.length < 2) return concatedClipAudioPath;
 
-    const mixedFile = await mixArbitraryAudio({ streams, audioNorm, outputVolume });
+    const mixedFile = await mixArbitraryAudio({
+      streams,
+      audioNorm,
+      outputVolume,
+      ducking: audioDucking,
+    });
     return mixedFile;
   }
 

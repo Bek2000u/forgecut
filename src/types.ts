@@ -102,6 +102,28 @@ export interface AudioTrack {
    * @default 0
    */
   start?: number;
+
+  /**
+   * Sidechain ducking role. "trigger" tracks (e.g. a voice-over) duck the
+   * volume of "ducked" tracks (e.g. background music) while they play. Takes
+   * effect only when at least one "trigger" and one "ducked" track are present.
+   */
+  ducking?: "trigger" | "ducked";
+}
+
+/**
+ * Sidechain compression parameters used when audio tracks carry `ducking`
+ * roles. See ffmpeg's `sidechaincompress` filter.
+ */
+export interface AudioDuckingOptions {
+  /** Compression threshold (0-1); lower ducks more readily. @default 0.03 */
+  threshold?: number;
+  /** Compression ratio; higher ducks harder. @default 12 */
+  ratio?: number;
+  /** Attack time in ms. @default 20 */
+  attack?: number;
+  /** Release time in ms. @default 300 */
+  release?: number;
 }
 
 /**

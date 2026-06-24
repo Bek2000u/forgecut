@@ -3,7 +3,13 @@ import { merge } from "lodash-es";
 import { nanoid } from "nanoid";
 import { dirname, join } from "path";
 import { expandLayerAliases } from "./sources/index.js";
-import type { AudioNormalizationOptions, AudioTrack, Clip, DefaultOptions } from "./types.js";
+import type {
+  AudioDuckingOptions,
+  AudioNormalizationOptions,
+  AudioTrack,
+  Clip,
+  DefaultOptions,
+} from "./types.js";
 
 export type DebugOptions = {
   verbose?: boolean;
@@ -182,6 +188,13 @@ export type ConfigurationOptions = {
   audioNorm?: AudioNormalizationOptions;
 
   /**
+   * Sidechain ducking parameters. Ducking activates when audio tracks carry
+   * `ducking: "trigger"` / `ducking: "ducked"` roles (e.g. music ducking under
+   * a voice-over); this only tunes the compressor.
+   */
+  audioDucking?: AudioDuckingOptions;
+
+  /**
    * WARNING: Undocumented feature!
    */
   keepTmp?: boolean;
@@ -227,6 +240,7 @@ export class Configuration {
   loopAudio?: boolean;
   keepSourceAudio?: boolean;
   audioNorm?: AudioNormalizationOptions;
+  audioDucking?: AudioDuckingOptions;
   outputVolume?: number | string;
   clipsAudioVolume: string | number;
   audioTracks: AudioTrack[];
@@ -260,6 +274,7 @@ export class Configuration {
     this.keepSourceAudio = input.keepSourceAudio;
     this.allowRemoteRequests = input.allowRemoteRequests ?? false;
     this.audioNorm = input.audioNorm;
+    this.audioDucking = input.audioDucking;
     this.outputVolume = input.outputVolume;
     this.customOutputArgs = input.customOutputArgs;
     this.videoCodec = input.videoCodec;
