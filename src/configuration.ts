@@ -16,6 +16,15 @@ export type FfmpegConfig = {
   enableFfmpegLog?: boolean;
 };
 
+export interface ProgressEvent {
+  /** Completion percentage (0-100). */
+  percent: number;
+  /** Number of frames written so far. */
+  frame: number;
+  /** Estimated total number of frames. */
+  totalFrames: number;
+}
+
 export type ConfigurationOptions = {
   /**
    * Output path (`.mp4` or `.mkv`, can also be a `.gif`).
@@ -56,6 +65,41 @@ export type ConfigurationOptions = {
    * @see [Example]{@link https://github.com/mifi/editly/blob/master/examples/customOutputArgs.json5}
    */
   customOutputArgs?: string[];
+
+  /**
+   * Video codec for the output (e.g. `libx264`, `h264_nvenc`, `hevc_vaapi`).
+   * Lets you opt into hardware-accelerated encoding. Ignored when
+   * `customOutputArgs` is set.
+   *
+   * @default "libx264"
+   */
+  videoCodec?: string;
+
+  /**
+   * Encoder preset (e.g. `ultrafast`, `medium`, `slow`). Ignored when
+   * `customOutputArgs` is set.
+   */
+  preset?: string;
+
+  /**
+   * Constant Rate Factor; lower is higher quality. Ignored when `videoBitrate`
+   * or `customOutputArgs` is set.
+   *
+   * @default 18
+   */
+  crf?: number;
+
+  /**
+   * Target video bitrate (e.g. `"5M"`). When set, used instead of `crf`.
+   * Ignored when `customOutputArgs` is set.
+   */
+  videoBitrate?: string;
+
+  /**
+   * Called as rendering progresses, so programmatic callers don't have to
+   * scrape stdout for the percentage.
+   */
+  onProgress?: (progress: ProgressEvent) => void;
 
   /**
    * Allow remote URLs as paths.
@@ -166,11 +210,16 @@ export class Configuration {
   allowRemoteRequests: boolean;
   customOutputArgs?: string[];
   defaults: DefaultOptions;
+  onProgress?: (progress: ProgressEvent) => void;
 
   // Video
   width?: number;
   height?: number;
   fps?: number;
+  videoCodec?: string;
+  preset?: string;
+  crf?: number;
+  videoBitrate?: string;
 
   // Audio
   audioFilePath?: string;
@@ -213,6 +262,11 @@ export class Configuration {
     this.audioNorm = input.audioNorm;
     this.outputVolume = input.outputVolume;
     this.customOutputArgs = input.customOutputArgs;
+    this.videoCodec = input.videoCodec;
+    this.preset = input.preset;
+    this.crf = input.crf;
+    this.videoBitrate = input.videoBitrate;
+    this.onProgress = input.onProgress;
     this.defaults = merge({}, globalDefaults, input.defaults);
 
     this.clips = input.clips.map((clip) => {

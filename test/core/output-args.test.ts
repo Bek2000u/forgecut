@@ -31,4 +31,21 @@ describe("buildOutputArgs", () => {
       buildOutputArgs({ fps: 30, width: 100, height: 100, audioFilePath: "/a.aac" }),
     ).toContain("aac");
   });
+
+  test("honors a custom video codec (e.g. hardware encoder)", () => {
+    const args = buildOutputArgs({ fps: 30, width: 1920, height: 1080, videoCodec: "h264_nvenc" });
+    expect(args).toContain("h264_nvenc");
+    expect(args).not.toContain("libx264");
+  });
+
+  test("uses the requested crf and preset", () => {
+    const args = buildOutputArgs({ fps: 30, width: 1920, height: 1080, crf: 23, preset: "slow" });
+    expect(args).toEqual(expect.arrayContaining(["-crf", "23", "-preset:v", "slow"]));
+  });
+
+  test("uses bitrate instead of crf when videoBitrate is set", () => {
+    const args = buildOutputArgs({ fps: 30, width: 1920, height: 1080, videoBitrate: "5M" });
+    expect(args).toEqual(expect.arrayContaining(["-b:v", "5M"]));
+    expect(args).not.toContain("-crf");
+  });
 });

@@ -49,6 +49,11 @@ async function Editly(input: ConfigurationOptions): Promise<void> {
     audioNorm,
     outputVolume,
     customOutputArgs,
+    videoCodec,
+    preset,
+    crf,
+    videoBitrate,
+    onProgress,
     isGif,
     tmpDir,
     defaults,
@@ -135,7 +140,19 @@ async function Editly(input: ConfigurationOptions): Promise<void> {
       ...(!isGif ? ["-map", "0:v:0"] : []),
       ...(audioFilePath ? ["-map", "1:a:0"] : []),
 
-      ...buildOutputArgs({ isGif, fast, fps, width, height, audioFilePath, customOutputArgs }),
+      ...buildOutputArgs({
+        isGif,
+        fast,
+        fps,
+        width,
+        height,
+        audioFilePath,
+        customOutputArgs,
+        videoCodec,
+        preset,
+        crf,
+        videoBitrate,
+      }),
 
       "-y",
       outPath,
@@ -171,6 +188,7 @@ async function Editly(input: ConfigurationOptions): Promise<void> {
         verbose,
         logTimes,
         outProcess,
+        onProgress,
       });
     } catch (err) {
       outProcess.kill();

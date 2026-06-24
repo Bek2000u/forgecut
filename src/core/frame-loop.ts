@@ -1,4 +1,5 @@
 import type { Options, ResultPromise } from "execa";
+import type { ProgressEvent } from "../configuration.js";
 import { createFrameSource } from "../frameSource.js";
 import type { ProcessedClip } from "../parseConfig.js";
 
@@ -13,6 +14,7 @@ export interface RenderFrameLoopOptions {
   verbose: boolean;
   logTimes: boolean;
   outProcess: ResultPromise<Options>;
+  onProgress?: (progress: ProgressEvent) => void;
 }
 
 /**
@@ -31,6 +33,7 @@ export async function renderFrameLoop({
   verbose,
   logTimes,
   outProcess,
+  onProgress,
 }: RenderFrameLoopOptions): Promise<void> {
   let frameSource1;
   let frameSource2;
@@ -100,10 +103,17 @@ export async function renderFrameLoop({
       // How many frames into the transition are we? negative means not yet started
       const transitionFrameAt = fromClipFrameAt - (fromClipNumFrames - transitionNumFramesSafe);
 
-      if (!verbose) {
-        const percentDone = Math.floor(100 * (totalFramesWritten / estimatedTotalFrames));
-        if (totalFramesWritten % 10 === 0)
-          process.stdout.write(`${String(percentDone).padStart(3, " ")}% `);
+      const percentDone = Math.min(
+        100,
+        Math.floor(100 * (totalFramesWritten / estimatedTotalFrames)),
+      );
+      onProgress?.({
+        percent: percentDone,
+        frame: totalFramesWritten,
+        totalFrames: Math.round(estimatedTotalFrames),
+      });
+      if (!verbose && totalFramesWritten % 10 === 0) {
+        process.stdout.write(`${String(percentDone).padStart(3, " ")}% `);
       }
 
       const transitionLastFrameIndex = transitionNumFramesSafe;
