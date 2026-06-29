@@ -65,7 +65,7 @@ jobs:
             pkg-config
       - if: runner.os == 'Linux'
         run: sudo /usr/bin/Xvfb $DISPLAY -screen 0 1280x1024x24 &
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.nodejs }}
@@ -84,8 +84,8 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
           repository: mifi/editly-assets
           path: examples/assets
