@@ -1,6 +1,6 @@
 {
-  "name": "editly",
-  "description": "Simple, sexy, declarative video editing",
+  "name": "forgecut",
+  "description": "Declarative video renderer for VideoForge (derived from editly)",
   "version": "0.15.0-rc.1",
   "module": "./dist/index.js",
   "types": "dist/index.d.ts",
@@ -49,10 +49,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mifi/editly.git"
+    "url": "git+https://github.com/Bek2000u/forgecut.git"
   },
   "bin": {
-    "editly": "dist/cli.js"
+    "forgecut": "dist/cli.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
