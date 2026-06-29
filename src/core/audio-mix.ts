@@ -14,8 +14,35 @@ export interface AudioMixStream {
 
 export interface AudioNormParams {
   enable?: boolean;
+  mode?: "dynaudnorm" | "loudnorm";
   gaussSize?: number;
   maxGain?: number;
+  targetLufs?: number;
+  truePeakDb?: number;
+  loudnessRange?: number;
+}
+
+/**
+ * Build the trailing `,<filter>` fragment that normalizes the mixed-down audio,
+ * or `""` when normalization is disabled. Appended to the final `amix` chain.
+ *
+ * - `dynaudnorm` (default): dynamic, window-based leveling.
+ * - `loudnorm`: single-pass EBU R128 toward an integrated LUFS target — match
+ *   this to the destination platform (YouTube ≈ -14 LUFS).
+ */
+function buildAudioNormArg(audioNorm?: AudioNormParams): string {
+  if (!audioNorm?.enable) return "";
+
+  if (audioNorm.mode === "loudnorm") {
+    const i = audioNorm.targetLufs ?? -14;
+    const tp = audioNorm.truePeakDb ?? -1;
+    const lra = audioNorm.loudnessRange ?? 7;
+    return `,loudnorm=I=${i}:TP=${tp}:LRA=${lra}`;
+  }
+
+  const gaussSize = audioNorm.gaussSize ?? 5;
+  const maxGain = audioNorm.maxGain ?? 30;
+  return `,dynaudnorm=g=${gaussSize}:maxgain=${maxGain}`;
 }
 
 export interface BuildAudioMixFilterOptions {
@@ -53,10 +80,7 @@ export function buildAudioMixFilter({
     })
     .join(";");
 
-  const enableAudioNorm = audioNorm && audioNorm.enable;
-  const gaussSize = audioNorm?.gaussSize != null ? audioNorm.gaussSize : 5;
-  const maxGain = audioNorm?.maxGain != null ? audioNorm.maxGain : 30;
-  const audioNormArg = enableAudioNorm ? `,dynaudnorm=g=${gaussSize}:maxgain=${maxGain}` : "";
+  const audioNormArg = buildAudioNormArg(audioNorm);
   const volumeArg = outputVolume != null ? `,volume=${outputVolume}` : "";
 
   const triggers = streams.filter((s) => s.ducking === "trigger");

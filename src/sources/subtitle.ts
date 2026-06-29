@@ -1,6 +1,6 @@
 import { Rect, Textbox } from "fabric/node";
 import { defineFrameSource } from "../api/index.js";
-import { computeWordRanges, joinWords } from "../core/subtitle-words.js";
+import { activeWordAt, computeWordRanges, joinWords, popKeyframe } from "../core/subtitle-words.js";
 import { easeOutExpo } from "../easings.js";
 import type { SubtitleLayer } from "../types.js";
 import { defaultFontFamily } from "../util.js";
@@ -20,6 +20,9 @@ export default defineFrameSource<SubtitleLayer>("subtitle", async ({ width, heig
     strokeWidth = 0,
     position = "bottom",
     maxWidth = 0.9,
+    karaokeStyle = "highlight",
+    popInDuration = 0.15,
+    popScale = 0.7,
   } = params;
 
   const min = Math.min(width, height);
@@ -41,6 +44,31 @@ export default defineFrameSource<SubtitleLayer>("subtitle", async ({ width, heig
 
   return {
     async readNextFrame(progress, canvas, time) {
+      // Single-word karaoke: show only the spoken word, centered, with a pop-in.
+      if (words && words.length > 0 && karaokeStyle === "single-word") {
+        const current = activeWordAt(words, time);
+        if (!current) return; // gap between words — draw nothing
+
+        const { scale, opacity } = popKeyframe(current.elapsed, popInDuration, popScale);
+
+        const textBox = new Textbox(current.word.word, {
+          fill: textColor,
+          fontFamily,
+          fontSize: fontSize * scale,
+          textAlign: "center",
+          width: width * maxWidth,
+          originX: "center",
+          originY: anchor.originY,
+          left: width / 2,
+          top: anchor.top,
+          opacity,
+          ...strokeProps,
+        });
+
+        canvas.add(textBox);
+        return;
+      }
+
       // Karaoke mode: show the whole caption and highlight the spoken word.
       if (words && words.length > 0) {
         const textBox = new Textbox(joinWords(words), {

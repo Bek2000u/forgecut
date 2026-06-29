@@ -101,7 +101,9 @@ export default async function parseConfig({
         | SubtitleLayer
         | NewsTitleLayer
         | SlideInTextLayer;
-      assert(rest.text, "Please specify a text");
+      // Subtitles may instead carry per-word timings (`words`) for karaoke.
+      const hasWords = layer.type === "subtitle" && (rest as SubtitleLayer).words?.length;
+      assert(rest.text || hasWords, "Please specify a text");
 
       let { fontFamily } = rest;
       if (fontPath) {

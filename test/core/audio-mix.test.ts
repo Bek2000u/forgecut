@@ -21,6 +21,29 @@ describe("buildAudioMixFilter (no ducking)", () => {
     expect(filter).toContain(",volume=2");
   });
 
+  test("emits EBU R128 loudnorm with YouTube defaults when mode is loudnorm", () => {
+    const filter = buildAudioMixFilter({
+      streams: [{}, {}],
+      audioNorm: { enable: true, mode: "loudnorm" },
+    });
+    expect(filter).toContain("loudnorm=I=-14:TP=-1:LRA=7");
+    expect(filter).not.toContain("dynaudnorm");
+  });
+
+  test("honors custom loudnorm targets", () => {
+    const filter = buildAudioMixFilter({
+      streams: [{}, {}],
+      audioNorm: {
+        enable: true,
+        mode: "loudnorm",
+        targetLufs: -16,
+        truePeakDb: -1.5,
+        loudnessRange: 11,
+      },
+    });
+    expect(filter).toContain("loudnorm=I=-16:TP=-1.5:LRA=11");
+  });
+
   test("does not duck when only one role is present", () => {
     const filter = buildAudioMixFilter({ streams: [{}, { ducking: "ducked" }] });
     expect(filter).not.toContain("sidechaincompress");

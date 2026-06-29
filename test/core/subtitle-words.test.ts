@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { computeWordRanges, joinWords } from "../../src/core/subtitle-words.js";
+import {
+  activeWordAt,
+  computeWordRanges,
+  joinWords,
+  popKeyframe,
+} from "../../src/core/subtitle-words.js";
 
 const words = [
   { word: "Hello", start: 0, end: 1 },
@@ -32,5 +37,36 @@ describe("subtitle-words", () => {
   test("no word is active before the first or after the last", () => {
     expect(computeWordRanges(words, -0.5).some((r) => r.active)).toBe(false);
     expect(computeWordRanges(words, 5).some((r) => r.active)).toBe(false);
+  });
+
+  describe("activeWordAt (single-word style)", () => {
+    test("returns the spoken word with elapsed and duration", () => {
+      const a = activeWordAt(words, 1.25);
+      expect(a?.word.word).toBe("brave");
+      expect(a?.elapsed).toBeCloseTo(0.25);
+      expect(a?.duration).toBeCloseTo(1);
+    });
+
+    test("returns null in gaps and outside the caption", () => {
+      expect(activeWordAt(words, -0.5)).toBeNull();
+      expect(activeWordAt(words, 5)).toBeNull();
+    });
+  });
+
+  describe("popKeyframe", () => {
+    test("starts at popScale/transparent and ends at full size/opaque", () => {
+      expect(popKeyframe(0, 0.15, 0.7)).toEqual({ scale: 0.7, opacity: 0 });
+      const end = popKeyframe(0.15, 0.15, 0.7);
+      expect(end.scale).toBeCloseTo(1);
+      expect(end.opacity).toBeCloseTo(1);
+    });
+
+    test("holds at full size after the pop-in window", () => {
+      expect(popKeyframe(2, 0.15, 0.7)).toEqual({ scale: 1, opacity: 1 });
+    });
+
+    test("disabling the animation (zero duration) is a no-op", () => {
+      expect(popKeyframe(0, 0, 0.7)).toEqual({ scale: 1, opacity: 1 });
+    });
   });
 });

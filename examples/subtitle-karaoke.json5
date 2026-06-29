@@ -1,0 +1,34 @@
+{
+  // Single-word "pop" captions (TikTok / Shorts style). Each word appears on
+  // its own, centered, scaling and fading in over `popInDuration`. Feed the
+  // per-word timings (seconds, relative to the clip start) from e.g. Whisper.
+  outPath: "./subtitle-karaoke.mp4",
+  clips: [
+    {
+      duration: 3,
+      layers: [
+        { type: "rainbow-colors" },
+        {
+          type: "subtitle",
+          karaokeStyle: "single-word",
+          position: "center",
+          fontSize: 120,
+          textColor: "#ffffff",
+          strokeColor: "#000000",
+          strokeWidth: 8,
+          // popScale < 1 grows the word in; popInDuration is the pop length (s).
+          popScale: 0.6,
+          popInDuration: 0.12,
+          words: [
+            { word: "THIS", start: 0.0, end: 0.4 },
+            { word: "IS", start: 0.4, end: 0.7 },
+            { word: "HOW", start: 0.7, end: 1.0 },
+            { word: "SHORTS", start: 1.0, end: 1.6 },
+            { word: "CAPTIONS", start: 1.6, end: 2.3 },
+            { word: "POP", start: 2.3, end: 3.0 },
+          ],
+        },
+      ],
+    },
+  ],
+}

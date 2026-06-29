@@ -507,6 +507,36 @@ export interface SubtitleLayer extends TextLayer {
    * @default 0.9
    */
   maxWidth?: number;
+
+  /**
+   * Karaoke rendering style (only used with `words`):
+   *
+   * - `"highlight"` — show the full caption and recolor the spoken word
+   *   (podcast / YouTube style). This is the default.
+   * - `"single-word"` — show only the word being spoken, centered, with a
+   *   pop-in animation (TikTok / Shorts style).
+   *
+   * @default "highlight"
+   */
+  karaokeStyle?: "highlight" | "single-word";
+
+  /**
+   * Duration of the per-word pop-in animation in seconds (used with
+   * `karaokeStyle: "single-word"`). The word scales/fades from `popScale` up
+   * to its full size over this window at the start of each word.
+   *
+   * @default 0.15
+   */
+  popInDuration?: number;
+
+  /**
+   * Starting scale of the per-word pop-in, as a multiple of the final size
+   * (used with `karaokeStyle: "single-word"`). `< 1` grows the word in,
+   * `> 1` shrinks it in. Set to `1` to disable scaling (fade only).
+   *
+   * @default 0.7
+   */
+  popScale?: number;
 }
 
 /**
@@ -843,7 +873,20 @@ export interface AudioNormalizationOptions {
   enable?: boolean;
 
   /**
-   * Audio normalization gauss size.
+   * Normalization algorithm.
+   *
+   * - `"dynaudnorm"` — dynamic loudness normalization (ffmpeg `dynaudnorm`).
+   *   Continuously levels volume across the track. Good for evening out a mix.
+   * - `"loudnorm"` — EBU R128 loudness normalization (ffmpeg `loudnorm`),
+   *   targeting an integrated loudness in LUFS. Use this to match streaming
+   *   platforms (e.g. YouTube normalizes uploads toward ~-14 LUFS).
+   *
+   * @default "dynaudnorm"
+   */
+  mode?: "dynaudnorm" | "loudnorm";
+
+  /**
+   * Audio normalization gauss size. Only used when `mode` is `"dynaudnorm"`.
    *
    * @default 5
    * @see [Audio normalization]{@link https://github.com/mifi/editly#audio-normalization}
@@ -851,12 +894,36 @@ export interface AudioNormalizationOptions {
   gaussSize?: number;
 
   /**
-   * Audio normalization max gain.
+   * Audio normalization max gain. Only used when `mode` is `"dynaudnorm"`.
    *
    * @default 30
    * @see [Audio normalization]{@link https://github.com/mifi/editly#audio-normalization}
    */
   maxGain?: number;
+
+  /**
+   * Integrated loudness target in LUFS (loudnorm `I`).
+   * Only used when `mode` is `"loudnorm"`.
+   *
+   * @default -14
+   */
+  targetLufs?: number;
+
+  /**
+   * True-peak ceiling in dBTP (loudnorm `TP`).
+   * Only used when `mode` is `"loudnorm"`.
+   *
+   * @default -1
+   */
+  truePeakDb?: number;
+
+  /**
+   * Loudness range in LU (loudnorm `LRA`).
+   * Only used when `mode` is `"loudnorm"`.
+   *
+   * @default 7
+   */
+  loudnessRange?: number;
 }
 
 export interface RenderSingleFrameConfig extends ConfigurationOptions {
